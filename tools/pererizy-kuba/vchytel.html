@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Перерізи куба — пульт уроку</title>
+<meta name="description" content="Пульт учителя до уроку на спільній дошці: вісім етапів із таймером, модель перерізу, відповідь і типові помилки класу.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Commissioner:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Unbounded:wght@500;700&display=swap">
+<link rel="stylesheet" href="../../assets/style.css">
+<link rel="stylesheet" href="model.css">
+</head>
+<body>
+<div class="wrap wide">
+
+  <header class="topbar">
+    <div>
+      <a class="backlink" href="../../">← Усі інструменти</a>
+      <p class="eyebrow">Пульт учителя · 10–11 клас · 45 хв</p>
+      <h1>Перерізи куба: від гіпотези класу до доведення</h1>
+      <p class="lede">Сторінка для проєктора. Учнівська версія — без відповідей і без готових прикладів: <a href="./">відкрити</a>.</p>
+    </div>
+    <div class="clock" id="clock">
+      <div>
+        <div class="lbl">Етап <span id="clockStage">1</span></div>
+        <div class="t" id="clockT">03:00</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <button id="btnRun">Пуск</button>
+        <button id="btnReset">Скинути</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="steps" id="steps" role="tablist" aria-label="Етапи уроку"></div>
+
+  <div class="main">
+    <section class="panel">
+      <div class="head">
+        <h2>Модель перерізу</h2>
+        <label class="chk"><input type="checkbox" id="lbls"> підписи вершин</label>
+      </div>
+      <div class="body">
+        <canvas class="cube" id="cv" aria-label="Куб із січною площиною"></canvas>
+
+        <div class="readout">
+          <div class="n" id="rN">6</div>
+          <div>
+            <div class="word" id="rWord">шестикутник</div>
+            <div class="sub" id="rSub">перетнуто 6 граней з 6</div>
+          </div>
+        </div>
+        <div class="flag" id="flag" hidden></div>
+
+        <div class="presets">
+          <button class="p3" data-pre="3">3 сторони</button>
+          <button class="p4" data-pre="4">4 сторони</button>
+          <button class="p5" data-pre="5">5 сторін</button>
+          <button class="p6" data-pre="6">6 сторін</button>
+          <button data-pre="rand">Випадкова площина</button>
+        </div>
+
+        <div class="sliders">
+          <div class="sl"><label for="sA">Нахил площини</label><input type="range" id="sA" min="0" max="180" step="0.5" value="55"><output id="oA">55,0°</output></div>
+          <div class="sl"><label for="sB">Поворот площини</label><input type="range" id="sB" min="0" max="360" step="0.5" value="45"><output id="oB">45,0°</output></div>
+          <div class="sl"><label for="sD">Зсув площини</label><input type="range" id="sD" min="0" max="1" step="0.002" value="0.5"><output id="oD">0,50</output></div>
+        </div>
+
+        <div class="toolrow">
+          <button id="btnView">Розвернути до перерізу</button>
+          <button id="btnSeven">Спробувати знайти 7 сторін</button>
+          <div class="note" id="sevenNote">Пресети відтворюють ті самі чотири площини, що на рисунках друкованої картки завдання.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel stage">
+      <div class="head"><h2>Хід уроку</h2><span class="pill">45 хв разом</span></div>
+      <div class="body" id="stageBody"></div>
+    </section>
+  </div>
+
+  <footer>
+    <b>Статус матеріалу.</b> Ілюстративний приклад до підрозділу Д.7 Додатка Д; у формувальному етапі експерименту спільні дошки не задіяні й окремо не перевірялися. Завдання авторське, побудоване на змісті завдань 9 і 13 Додатка А. Персональні дані учнів у сервіс спільної дошки не вносяться — на дошці умовні імена або номери.
+  </footer>
+</div>
+
+<script src="model.js"></script>
+<script>
+(function () {
+  var cube = CubeSection.create(document.getElementById("cv"));
+  var sA = document.getElementById("sA"), sB = document.getElementById("sB"), sD = document.getElementById("sD");
+  var oA = document.getElementById("oA"), oB = document.getElementById("oB"), oD = document.getElementById("oD");
+
+  /* ті самі чотири площини, що на рисунках друкованої картки */
+  var PRESETS = {
+    "3": [[1,1,1], 0.3], "4": [[1,0,-1], 0.3],
+    "5": [[1,0.4,1.4], 1.3], "6": [[1,1,1], 1.5]
+  };
+
+  cube.onChange = function (s) {
+    var flag = document.getElementById("flag");
+    if (s.vertexHit) {
+      document.getElementById("rN").textContent = "—";
+      document.getElementById("rWord").textContent = "площина проходить через вершину";
+      document.getElementById("rSub").textContent = "за умовою завдання такі площини не розглядаються";
+      flag.hidden = false;
+      flag.textContent = "Зсуньте площину: умова вимагає, щоб вона не проходила через жодну вершину куба.";
+    } else {
+      flag.hidden = true;
+      document.getElementById("rN").textContent = s.sides || "0";
+      document.getElementById("rWord").textContent = s.name || "перерізу немає";
+      document.getElementById("rSub").textContent = s.sides
+        ? "перетнуто " + s.sides + " " + (s.sides < 5 ? "грані" : "граней") + " з 6"
+        : "площина проходить поза кубом";
+    }
+    oA.textContent = s.alpha.toFixed(1).replace(".", ",") + "°";
+    oB.textContent = s.beta.toFixed(1).replace(".", ",") + "°";
+    oD.textContent = s.t.toFixed(2).replace(".", ",");
+    sA.value = s.alpha; sB.value = s.beta; sD.value = s.t;
+  };
+
+  sA.addEventListener("input", function () { cube.setAngles(parseFloat(sA.value), null, null); });
+  sB.addEventListener("input", function () { cube.setAngles(null, parseFloat(sB.value), null); });
+  sD.addEventListener("input", function () { cube.setAngles(null, null, parseFloat(sD.value)); });
+  document.getElementById("lbls").addEventListener("change", function (e) { cube.setLabels(e.target.checked); });
+  document.getElementById("btnView").addEventListener("click", function () { cube.alignView(); });
+
+  document.querySelectorAll("[data-pre]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      if (b.dataset.pre === "rand") { cube.random(); }
+      else { var p = PRESETS[b.dataset.pre]; cube.setFromND(p[0], p[1]); }
+      cube.alignView();
+    });
+  });
+
+  document.getElementById("btnSeven").addEventListener("click", function () {
+    var r = cube.search(60000);
+    var share = [3,4,5,6].map(function (k) {
+      return k + " сторін — " + Math.round(100*(r.hist[k]||0)/r.checked) + "%";
+    }).join(" · ");
+    document.getElementById("sevenNote").innerHTML =
+      "Перевірено <b>" + r.checked.toLocaleString("uk-UA") + "</b> випадкових площин — максимум сторін <b>" +
+      r.max + "</b>, семикутника не знайдено. Як часто трапляється кожен випадок: " + share +
+      ". Але перебір нічого не доводить: доведення — на етапі 7, без комп’ютера.";
+  });
+
+  /* ---------------- етапи уроку ---------------- */
+  var STAGES = [
+   {t:"Вхід на дошку",m:3,sec:"0 · Вхід",
+    teacher:"Виводить QR-код і посилання на дошку. Нагадує: підписуватись умовним ім’ям або номером, не прізвищем.",
+    pupil:"Відкривають дошку з телефона, лишають одну картку в секції «Вхід» — щоб перевірити, що доступ працює.",
+    q:["Чи в усіх відкрилася дошка?","Що робити тим, у кого немає пристрою? (працюють у парі)"],
+    tip:"Технічну перевірку варто зробити <b>до</b> змістовної роботи: інакше перші три хвилини гіпотези з’їсть налагодження зв’язку."},
+
+   {t:"Що таке переріз",m:5,sec:"1 · Розминка",
+    teacher:"Показує на моделі одну похилу площину, не називаючи кількості сторін. Ставить питання про сам об’єкт.",
+    pupil:"Усно відповідають; одна спільна картка-визначення на дошці, яку клас редагує разом.",
+    q:["Що таке переріз многогранника площиною?","Чому переріз — це завжди плоска фігура?","Звідки береться кожна сторона перерізу?"],
+    tip:"Ключ до всього уроку — остання відповідь: <b>сторона перерізу з’являється там, де площина перетинає грань</b>. Її варто зафіксувати на дошці окремою карткою."},
+
+   {t:"Гіпотеза наодинці",m:6,sec:"2 · Моя гіпотеза",
+    teacher:"Умикає ручну модерацію: картки не з’являються на дошці, доки вчитель їх не схвалить. Оголошує завдання.",
+    pupil:"Кожен подає одну картку: поле «Скільки сторін» і поле «Чому я так думаю».",
+    q:["Уявіть площину, яка перетинає куб і не проходить через жодну вершину. Яку кількість сторін може мати переріз?","Одним реченням обґрунтуйте свій варіант."],
+    tip:"Модерація тут не про дисципліну, а про <b>чистоту зрізу думки</b>: поки картки приховані, ніхто не переписує чужу гіпотезу."},
+
+   {t:"Усі версії одночасно",m:5,sec:"2 · Моя гіпотеза",
+    teacher:"Схвалює всі картки одним заходом — клас бачить усі версії разом. Перемикає формат дошки на «Таблицю»: гіпотези стають стовпцем, видно частоту кожної.",
+    pupil:"Читають чужі формулювання, порівнюють зі своєю. Ставлять реакцію картці з найпереконливішим обґрунтуванням.",
+    q:["Які версії трапляються найчастіше?","Чому в декого 4, а в декого 6?","Хтось написав «завжди чотирикутник» — що саме він уявляв?"],
+    tip:"Якщо переважає «завжди чотирикутник» — це не випадковість: у переборі випадкових січних площин чотирикутник трапляється приблизно вдвічі частіше за трикутник і вчетверо частіше за шестикутник (кнопка перебору під моделлю показує розподіл)."},
+
+   {t:"Перевірка побудовою",m:10,sec:"3 · Перевірка",
+    teacher:"Веде перевірку: для кожної названої класом кількості шукають конкретну площину — на цій моделі або в GeoGebra 3D.",
+    pupil:"Працюють в учнівській версії інструмента або в GeoGebra 3D; у секцію «Перевірка» кладуть знімок екрана знайденого прикладу.",
+    q:["Яку площину треба взяти, щоб дістати трикутник? А шестикутник?","Що відбувається з перерізом, коли площина повільно зсувається?","Скільки граней перетнуто в кожному випадку?"],
+    tip:"Порядок має значення: спершу підтвердити <b>3, 4, 5, 6</b>, і лише потім братися за версії 7 і «скільки завгодно» — інакше урок перетворюється на спростування, а не на дослідження."},
+
+   {t:"Що сталося з моєю гіпотезою",m:5,sec:"2 · Моя гіпотеза",
+    teacher:"Просить кожного повернутися до власної картки й дописати коментар — не стерти, а прокоментувати.",
+    pupil:"Коментують власну картку: підтвердилась, підтвердилась частково чи спростована — і що саме змінило думку.",
+    q:["Що саме довелося побачити, щоб змінити думку?","Чия гіпотеза була найближчою до повної відповіді?","Чому «завжди чотирикутник» — не помилка, а неповний перебір?"],
+    tip:"Картку не видаляють. Слід власної помилки, підписаний власним коментарем, — це те, заради чого дошка й потрібна: <b>видно рух думки, а не лише кінцеву відповідь</b>."},
+
+   {t:"Доведення: чому не більше шести",m:8,sec:"4 · Доведення",
+    teacher:"Закриває екран із моделлю. Доведення виконується на папері, без цифрового засобу.",
+    pupil:"У парах записують доведення; одна пара фотографує свій запис у секцію «Доведення».",
+    q:["Скільки сторін перерізу може дати одна грань куба?","Скільки граней має куб?","Що з цього випливає для кількості сторін?","Чому менше трьох сторін бути не може?"],
+    tip:"Ядро доведення: <b>перетнута грань дає рівно одну сторону перерізу, граней шість — отже, сторін не більше шести</b>; менше трьох многокутник не замикає. Перебір площин на екрані цього не доводить — він лише показує приклади."},
+
+   {t:"Вихідний квиток",m:3,sec:"5 · Вихід",
+    teacher:"Одна картка від кожного в секцію «Вихід»; читає дві-три вголос.",
+    pupil:"Завершують речення: «Сьогодні я зрозумів, що кількість сторін перерізу залежить від…»",
+    q:["Що виявилося несподіваним?","Що було переконливішим — побачити приклад чи довести?"],
+    tip:"Секція «Вихід» — готовий матеріал для наступного уроку: з неї видно, хто ще плутає <b>«не буває»</b> з <b>«я не знайшов»</b>."}
+  ];
+
+  var cur = 0, left = STAGES[0].m*60, running = false, timer = null;
+  var stepsEl = document.getElementById("steps"), bodyEl = document.getElementById("stageBody");
+
+  STAGES.forEach(function (s, i) {
+    var b = document.createElement("button");
+    b.className = "step"; b.setAttribute("role", "tab"); b.dataset.i = i;
+    b.innerHTML = '<span class="no">' + (i+1) + '</span>' + s.t + ' <span class="mins">' + s.m + ' хв</span>';
+    b.addEventListener("click", function () { go(i); });
+    stepsEl.appendChild(b);
+  });
+
+  function renderStage() {
+    var s = STAGES[cur];
+    bodyEl.innerHTML =
+      '<h3>' + s.t + '</h3>' +
+      '<div class="meta"><span class="pill">' + s.m + ' хв</span><span>секція дошки: <b>' + s.sec + '</b></span></div>' +
+      '<dl style="margin:0">' +
+        '<div class="role"><dt>Учитель</dt><dd>' + s.teacher + '</dd></div>' +
+        '<div class="role"><dt>Учні</dt><dd>' + s.pupil + '</dd></div>' +
+      '</dl>' +
+      '<div class="qs"><p>Ключові запитання</p><ul>' + s.q.map(function (q) { return "<li>" + q + "</li>"; }).join("") + '</ul></div>' +
+      '<p class="tip">' + s.tip + '</p>' +
+      '<div class="navrow"><button id="prev">← Попередній</button><button id="next" class="primary">Наступний етап →</button></div>';
+    document.getElementById("prev").onclick = function () { go(cur-1); };
+    document.getElementById("next").onclick = function () { go(cur+1); };
+    Array.prototype.forEach.call(stepsEl.children, function (b, i) {
+      b.setAttribute("aria-selected", i === cur ? "true" : "false");
+      b.dataset.done = i < cur ? "1" : "0";
+    });
+    document.getElementById("clockStage").textContent = cur + 1;
+  }
+  function go(i) {
+    if (i < 0 || i >= STAGES.length) return;
+    cur = i; left = STAGES[i].m*60; stop(); paint(); renderStage();
+    stepsEl.children[i].scrollIntoView({block:"nearest", inline:"center", behavior:"smooth"});
+  }
+  function paint() {
+    var neg = left < 0, a = Math.abs(left);
+    document.getElementById("clockT").textContent =
+      (neg ? "−" : "") + String(Math.floor(a/60)).padStart(2,"0") + ":" + String(a%60).padStart(2,"0");
+    document.getElementById("clock").classList.toggle("over", neg);
+  }
+  function stop() { running = false; clearInterval(timer); document.getElementById("btnRun").textContent = "Пуск"; }
+  document.getElementById("btnRun").onclick = function () {
+    if (running) { stop(); return; }
+    running = true; document.getElementById("btnRun").textContent = "Пауза";
+    timer = setInterval(function () { left--; paint(); }, 1000);
+  };
+  document.getElementById("btnReset").onclick = function () { left = STAGES[cur].m*60; stop(); paint(); };
+
+  cube.setFromND(PRESETS["6"][0], PRESETS["6"][1]);
+  cube.alignView();
+  renderStage(); paint();
+})();
+</script>
+</body>
+</html>

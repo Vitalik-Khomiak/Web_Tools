@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Перерізи куба — Web_Tools</title>
+<meta name="description" content="Січна площина, яка не проходить через вершини куба: рухай площину й дивись, скільки сторін має переріз.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Commissioner:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Unbounded:wght@500;700&display=swap">
+<link rel="stylesheet" href="../../assets/style.css">
+<link rel="stylesheet" href="model.css">
+</head>
+<body>
+<div class="wrap">
+
+  <header class="topbar">
+    <div>
+      <a class="backlink" href="../../">← Усі інструменти</a>
+      <h1>Перерізи куба</h1>
+    </div>
+    <a class="btn" href="vchytel.html">Для вчителя</a>
+  </header>
+
+  <div class="task">
+    <p><b>Завдання.</b> Площина перетинає куб і не проходить через жодну його вершину. Рухай повзунки й дивись, яка фігура виходить у перерізі.</p>
+    <p>Знайди <b>всі</b> кількості сторін, які взагалі можливі. Кожну знайдену кількість модель відмічає внизу. Коли здається, що більше не буває, — поясни словами, чому саме так.</p>
+  </div>
+
+  <section class="panel">
+    <div class="head">
+      <h2>Модель</h2>
+      <label class="chk"><input type="checkbox" id="lbls"> підписи вершин</label>
+    </div>
+    <div class="body">
+      <canvas class="cube" id="cv" aria-label="Куб із січною площиною"></canvas>
+
+      <div class="readout">
+        <div class="n" id="rN">4</div>
+        <div>
+          <div class="word" id="rWord">чотирикутник</div>
+          <div class="sub" id="rSub">перетнуто 4 грані з 6</div>
+        </div>
+      </div>
+      <div class="flag" id="flag" hidden></div>
+
+      <div class="sliders">
+        <div class="sl"><label for="sA">Нахил площини</label><input type="range" id="sA" min="0" max="180" step="0.5" value="55"><output id="oA">55,0°</output></div>
+        <div class="sl"><label for="sB">Поворот площини</label><input type="range" id="sB" min="0" max="360" step="0.5" value="45"><output id="oB">45,0°</output></div>
+        <div class="sl"><label for="sD">Зсув площини</label><input type="range" id="sD" min="0" max="1" step="0.002" value="0.5"><output id="oD">0,50</output></div>
+      </div>
+
+      <div class="found">
+        <span class="cap">Знайдено кількостей сторін</span>
+        <span class="chip" data-k="3">3</span>
+        <span class="chip" data-k="4">4</span>
+        <span class="chip" data-k="5">5</span>
+        <span class="chip" data-k="6">6</span>
+        <span class="chip" data-k="7">7</span>
+      </div>
+
+      <div class="toolrow">
+        <button id="btnRand">Випадкова площина</button>
+        <button id="btnView">Розвернути до перерізу</button>
+        <div class="note">Куб обертається перетягуванням. Площина не повинна проходити через вершину — модель попереджає про це сама.</div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <b>Модель показує, але не доводить.</b> Скільки б площин ти не перевірив, ти перевірив скінченну кількість. Пояснення, чому інших випадків не буває, — це вже твоя робота, і робиться вона на папері.
+  </footer>
+</div>
+
+<script src="model.js"></script>
+<script>
+(function () {
+  var cube = CubeSection.create(document.getElementById("cv"));
+  var sA = document.getElementById("sA"), sB = document.getElementById("sB"), sD = document.getElementById("sD");
+  var oA = document.getElementById("oA"), oB = document.getElementById("oB"), oD = document.getElementById("oD");
+  var found = {};
+
+  cube.onChange = function (s) {
+    var flag = document.getElementById("flag");
+    if (s.vertexHit) {
+      document.getElementById("rN").textContent = "—";
+      document.getElementById("rWord").textContent = "площина проходить через вершину";
+      document.getElementById("rSub").textContent = "за умовою такі площини не розглядаються";
+      flag.hidden = false;
+      flag.textContent = "Зсунь площину трохи: вона не повинна проходити через жодну вершину куба.";
+    } else {
+      flag.hidden = true;
+      document.getElementById("rN").textContent = s.sides || "0";
+      document.getElementById("rWord").textContent = s.name || "перерізу немає";
+      document.getElementById("rSub").textContent = s.sides
+        ? "перетнуто " + s.sides + " " + (s.sides < 5 ? "грані" : "граней") + " з 6"
+        : "площина проходить поза кубом";
+      if (s.sides >= 3 && !found[s.sides]) {
+        found[s.sides] = true;
+        var chip = document.querySelector('.chip[data-k="' + s.sides + '"]');
+        if (chip) chip.classList.add("on");
+      }
+    }
+    oA.textContent = s.alpha.toFixed(1).replace(".", ",") + "°";
+    oB.textContent = s.beta.toFixed(1).replace(".", ",") + "°";
+    oD.textContent = s.t.toFixed(2).replace(".", ",");
+    sA.value = s.alpha; sB.value = s.beta; sD.value = s.t;
+  };
+
+  sA.addEventListener("input", function () { cube.setAngles(parseFloat(sA.value), null, null); });
+  sB.addEventListener("input", function () { cube.setAngles(null, parseFloat(sB.value), null); });
+  sD.addEventListener("input", function () { cube.setAngles(null, null, parseFloat(sD.value)); });
+  document.getElementById("lbls").addEventListener("change", function (e) { cube.setLabels(e.target.checked); });
+  document.getElementById("btnRand").addEventListener("click", function () { cube.random(); });
+  document.getElementById("btnView").addEventListener("click", function () { cube.alignView(); });
+
+  /* стартова площина — навмисно проста, «класичний» чотирикутник:
+     відкриття решти випадків лишається роботою учня */
+  cube.setFromND([1, 0.35, 0], 0.62);
+  cube.alignView();
+})();
+</script>
+</body>
+</html>
