@@ -115,7 +115,7 @@
     function cssVar(k) {
       return getComputedStyle(document.documentElement).getPropertyValue(k).trim();
     }
-    var COLOR = {3:"--c3", 4:"--c4", 5:"--c5", 6:"--c6"};
+    var COLOR = {3:"--c1", 4:"--c2", 5:"--c3", 6:"--c4"};
 
     function draw() {
       var rect = canvas.getBoundingClientRect();

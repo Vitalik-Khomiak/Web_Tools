@@ -24,6 +24,16 @@ window.TOOLS = [
     url: "tools/pererizy-kuba/",
     teacher: "tools/pererizy-kuba/vchytel.html",
     qr: "assets/qr/pererizy-kuba.png"
+  },
+  {
+    id: "pryamyi-kut",
+    name: "Чому прямий кут на кресленні не прямий",
+    short: "Кут у просторі не змінюється, а на кресленні виглядає щоразу інакше. Підводить до теореми про три перпендикуляри.",
+    klas: "10–11",
+    tags: ["стереометрія", "кут", "проєкція", "перпендикулярність", "три перпендикуляри", "креслення", "ван Гіле 2–3"],
+    url: "tools/pryamyi-kut/",
+    teacher: null,
+    qr: "assets/qr/pryamyi-kut.png"
   }
 ];
 

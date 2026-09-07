@@ -1,4 +1,6 @@
-/* Стилі, спільні для сторінки учня і пульта вчителя. */
+/* Стилі сторінок-інструментів: спільні для всіх інструментів набору
+   і для обох версій кожного (учнівської й учительської).
+   Кольори — з tokens.css, який підключає style.css. */
 
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
 .panel > .head{display:flex;align-items:center;justify-content:space-between;gap:10px;
@@ -40,11 +42,11 @@ label.chk{display:inline-flex;gap:6px;align-items:center;font-size:13px;color:va
 .chip{font-family:var(--ff-mono);font-size:14px;font-weight:600;border-radius:8px;
   border:1px dashed var(--line);color:var(--muted);background:transparent;
   padding:6px 13px;min-width:44px;text-align:center}
-.chip.on{border-style:solid;color:var(--surface);font-weight:700}
-.chip.on[data-k="3"]{background:var(--c3);border-color:var(--c3)}
-.chip.on[data-k="4"]{background:var(--c4);border-color:var(--c4)}
-.chip.on[data-k="5"]{background:var(--c5);border-color:var(--c5)}
-.chip.on[data-k="6"]{background:var(--c6);border-color:var(--c6)}
+.chip.on{border-style:solid;font-weight:700}
+.chip.on[data-k="3"]{background:var(--c1);border-color:var(--c1);color:var(--on-c1)}
+.chip.on[data-k="4"]{background:var(--c2);border-color:var(--c2);color:var(--on-c2)}
+.chip.on[data-k="5"]{background:var(--c3);border-color:var(--c3);color:var(--on-c3)}
+.chip.on[data-k="6"]{background:var(--c4);border-color:var(--c4);color:var(--on-c4)}
 
 .task{background:var(--surface-2);border-left:3px solid var(--accent);border-radius:8px;
   padding:13px 15px;margin:0}
@@ -52,7 +54,7 @@ label.chk{display:inline-flex;gap:6px;align-items:center;font-size:13px;color:va
 .task p:last-child{margin:0}
 .task b{font-weight:600}
 
-/* --- пульт учителя --- */
+/* --- пульт учителя: етапи уроку й таймер --- */
 .clock{display:flex;align-items:center;gap:10px;background:var(--surface);
   border:1px solid var(--line);border-radius:var(--r);padding:8px 10px 8px 14px}
 .clock .t{font-family:var(--ff-mono);font-size:26px;font-weight:600;
@@ -66,8 +68,8 @@ label.chk{display:inline-flex;gap:6px;align-items:center;font-size:13px;color:va
   white-space:nowrap;font-size:13px;color:var(--muted)}
 .step .no{font-family:var(--ff-display);font-weight:500;font-size:12px;color:var(--muted)}
 .step .mins{font-family:var(--ff-mono);font-size:11px;color:var(--muted)}
-.step[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:var(--surface)}
-.step[aria-selected="true"] .no,.step[aria-selected="true"] .mins{color:var(--surface);opacity:.85}
+.step[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.step[aria-selected="true"] .no,.step[aria-selected="true"] .mins{color:var(--on-accent);opacity:.85}
 .step[data-done="1"]:not([aria-selected="true"]){border-color:var(--accent);color:var(--ink)}
 
 .main{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px;align-items:start}
@@ -96,5 +98,17 @@ label.chk{display:inline-flex;gap:6px;align-items:center;font-size:13px;color:va
 
 .presets{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 0}
 .presets button{border-left-width:4px}
-.p3{border-left-color:var(--c3)} .p4{border-left-color:var(--c4)}
-.p5{border-left-color:var(--c5)} .p6{border-left-color:var(--c6)}
+.p3{border-left-color:var(--c1)} .p4{border-left-color:var(--c2)}
+.p5{border-left-color:var(--c3)} .p6{border-left-color:var(--c4)}
+
+/* дві величини поруч: те, що є у просторі, і те, що видно на кресленні */
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0 2px}
+.pair > div{background:var(--surface-2);border-radius:8px;padding:11px 13px}
+.pair .cap{font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--muted);font-weight:600;margin-bottom:2px}
+.pair .val{font-family:var(--ff-display);font-weight:700;font-size:34px;line-height:1;
+  font-variant-numeric:tabular-nums}
+.pair .real .val{color:var(--c4)}
+.pair .drawn .val{color:var(--c1)}
+.pair .hint{font-size:12px;color:var(--muted);margin-top:4px}
+@media (max-width:520px){.pair{grid-template-columns:1fr}}
