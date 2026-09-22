@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Тіні: від тіла до форми і назад — Web_Tools</title>
+<meta name="description" content="Кут світла міняє форму тіні. А чи можна за тінню однозначно відновити тіло?">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Commissioner:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Unbounded:wght@500;700&display=swap">
+<link rel="stylesheet" href="../../assets/style.css">
+<link rel="stylesheet" href="../../assets/tool.css">
+</head>
+<body>
+<div class="wrap">
+
+  <header class="topbar">
+    <div>
+      <a class="backlink" href="../../">← Усі інструменти</a>
+      <h1>Тіні: від тіла до форми і назад</h1>
+    </div>
+  </header>
+
+  <div class="task">
+    <p><b>Що тут відбувається.</b> Тіло освітлене збоку, як сонце протягом дня, — повзунки міняють напрям і висоту світла. Тінь на землі — проєкція кожної вершини тіла вздовж променя світла.</p>
+    <p>Куб і піраміда тут мають <b>однакову квадратну основу</b> — навмисно. Перевір сам, коли їхні тіні збігаються, а коли ні.</p>
+  </div>
+
+  <section class="panel">
+    <div class="head">
+      <h2>Сцена</h2>
+      <div class="steps" id="modeSteps">
+        <div class="step" id="modeForward" aria-selected="true">Пряма задача</div>
+        <div class="step" id="modeReverse" aria-selected="false">Обернена задача</div>
+      </div>
+    </div>
+    <div class="body">
+      <canvas class="cube" id="cv" aria-label="Тіло, джерело світла і тінь на землі"></canvas>
+
+      <div id="fwdBlock">
+        <div class="steps" id="shapeSteps" style="margin-top:12px">
+          <div class="step" id="shCube" aria-selected="true">Куб</div>
+          <div class="step" id="shPyr" aria-selected="false">Піраміда</div>
+        </div>
+      </div>
+
+      <div id="revBlock" hidden>
+        <p style="font-size:13px;color:var(--muted);margin:12px 0 0">Видно тільки тінь. Перший приклад — навмисно сонце точно згори: тіні куба й піраміди з такою основою в цю мить однакові. Зміни кут — і побач, чи лишаються вони однаковими.</p>
+      </div>
+
+      <div class="sliders">
+        <div class="sl"><label for="sAz">Напрям світла</label><input type="range" id="sAz" min="0" max="360" step="1" value="210"><output id="oAz">210°</output></div>
+        <div class="sl"><label for="sAlt">Висота світла</label><input type="range" id="sAlt" min="10" max="90" step="1" value="32"><output id="oAlt">32°</output></div>
+      </div>
+
+      <div class="toolrow" id="fwdTools">
+        <button id="bNewSun">Новий кут світла</button>
+        <button id="bShowShadow">Показати тінь</button>
+        <div class="note" id="fwdNote">Перш ніж рухати повзунки: якою буде тінь? Тоді натисни «Показати тінь».</div>
+      </div>
+
+      <div class="toolrow" id="revTools" hidden>
+        <button id="bNewExample">Новий приклад</button>
+        <button id="bAnotherAngle">Ще один кут</button>
+        <button id="bRevealSolid">Показати тіло</button>
+        <div class="note" id="revNote"></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <b>Висновок, заради якого це все.</b> Кут світла, за якого два різні тіла дають однакову тінь, завжди можна підібрати — тут це погляд точно згори. Але досить трохи нахилити світло, і майже завжди тіні розходяться. Одна тінь нічого не доводить; та сама обережність потрібна, коли за плоским рисунком просторової фігури відновлюють, яка фігура на ньому насправді зображена.
+  </footer>
+</div>
+
+<script src="model.js"></script>
+<script>
+(function () {
+  var scene = Shadows.create(document.getElementById("cv"));
+  var sAz = document.getElementById("sAz"), sAlt = document.getElementById("sAlt");
+  var oAz = document.getElementById("oAz"), oAlt = document.getElementById("oAlt");
+  var revNote = document.getElementById("revNote");
+  var NAME = { cube: "куб", pyr: "піраміда" };
+
+  function selectStep(onId, offId) {
+    document.getElementById(onId).setAttribute("aria-selected", "true");
+    document.getElementById(offId).setAttribute("aria-selected", "false");
+  }
+
+  scene.onChange = function (s) {
+    oAz.textContent = Math.round(s.sunAz) + "°";
+    oAlt.textContent = Math.round(s.sunAlt) + "°";
+    revNote.textContent = s.solidShown
+      ? "Це було: " + NAME[s.hiddenShape] + "."
+      : (s.sunAlt >= 89.5 ? "Сонце точно згори — тіні куба й піраміди зараз однакові." : "На око: куб чи піраміда? Тоді натисни «Показати тіло».");
+  };
+
+  sAz.addEventListener("input", function () { scene.setSun(parseFloat(sAz.value), null); });
+  sAlt.addEventListener("input", function () { scene.setSun(null, parseFloat(sAlt.value)); });
+
+  document.getElementById("modeForward").addEventListener("click", function () {
+    selectStep("modeForward", "modeReverse");
+    document.getElementById("fwdBlock").hidden = false;
+    document.getElementById("revBlock").hidden = true;
+    document.getElementById("fwdTools").hidden = false;
+    document.getElementById("revTools").hidden = true;
+    scene.setMode("forward");
+  });
+  document.getElementById("modeReverse").addEventListener("click", function () {
+    selectStep("modeReverse", "modeForward");
+    document.getElementById("fwdBlock").hidden = true;
+    document.getElementById("revBlock").hidden = false;
+    document.getElementById("fwdTools").hidden = true;
+    document.getElementById("revTools").hidden = false;
+    scene.setMode("reverse");
+    sAz.value = scene.state.sunAz; sAlt.value = scene.state.sunAlt;
+  });
+
+  document.getElementById("shCube").addEventListener("click", function () {
+    selectStep("shCube", "shPyr"); scene.setShape("cube");
+  });
+  document.getElementById("shPyr").addEventListener("click", function () {
+    selectStep("shPyr", "shCube"); scene.setShape("pyr");
+  });
+
+  document.getElementById("bNewSun").addEventListener("click", function () {
+    scene.newSunForward(); sAz.value = scene.state.sunAz; sAlt.value = scene.state.sunAlt;
+  });
+  document.getElementById("bShowShadow").addEventListener("click", function () { scene.revealShadow(); });
+
+  document.getElementById("bNewExample").addEventListener("click", function () {
+    scene.newExample(); sAz.value = scene.state.sunAz; sAlt.value = scene.state.sunAlt;
+  });
+  document.getElementById("bAnotherAngle").addEventListener("click", function () {
+    scene.anotherAngle(); sAz.value = scene.state.sunAz; sAlt.value = scene.state.sunAlt;
+  });
+  document.getElementById("bRevealSolid").addEventListener("click", function () { scene.revealSolid(); });
+
+  scene.draw();
+})();
+</script>
+</body>
+</html>

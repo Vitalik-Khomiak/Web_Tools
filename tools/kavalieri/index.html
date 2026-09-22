@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Принцип Кавальєрі — Web_Tools</title>
+<meta name="description" content="Два тіла зовсім різної форми — але однакові площі перерізу на кожній висоті. Чи однакові об'єми?">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Commissioner:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Unbounded:wght@500;700&display=swap">
+<link rel="stylesheet" href="../../assets/style.css">
+<link rel="stylesheet" href="../../assets/tool.css">
+</head>
+<body>
+<div class="wrap">
+
+  <header class="topbar">
+    <div>
+      <a class="backlink" href="../../">← Усі інструменти</a>
+      <h1>Принцип Кавальєрі</h1>
+    </div>
+  </header>
+
+  <div class="task">
+    <p><b>Що тут відбувається.</b> Ліворуч — прямий циліндр, стос монет один на одному. Праворуч — той самий стос, зсунутий набік, як штовхнута колода карт. Одна горизонтальна площина перерізає обидва одночасно.</p>
+    <p>Перш ніж рухати повзунок: чи однакові площі перерізів на однаковій висоті? Посунь площину — або натисни «Автоперегляд» і перевір увесь діапазон одразу.</p>
+  </div>
+
+  <section class="panel">
+    <div class="head"><h2>Сцена</h2></div>
+    <div class="body">
+      <canvas class="cube" id="cv" aria-label="Прямий і похилий циліндр зі спільною січною площиною"></canvas>
+
+      <div class="pair">
+        <div class="real">
+          <div class="cap">Переріз — прямий</div>
+          <div class="val" id="vRight">0,636</div>
+          <div class="hint">коло радіуса R</div>
+        </div>
+        <div class="drawn">
+          <div class="cap">Переріз — похилий</div>
+          <div class="val" id="vOblique">0,636</div>
+          <div class="hint">теж коло радіуса R</div>
+        </div>
+      </div>
+
+      <div class="sliders">
+        <div class="sl"><label for="sT">Висота перерізу</label><input type="range" id="sT" min="0" max="100" step="1" value="50"><output id="oT">50%</output></div>
+        <div class="sl"><label for="sL">Нахил похилого циліндра</label><input type="range" id="sL" min="0" max="110" step="5" value="60"><output id="oL">0,60</output></div>
+      </div>
+
+      <div class="toolrow">
+        <button id="bPlay">Автоперегляд</button>
+        <div class="note" id="note">Перевірено висот: 0</div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <b>Висновок, заради якого це все — і де він навмисно зупиняється.</b> На кожній перевіреній висоті площі перерізів збігаються, хоч тіла на вигляд зовсім різні. Це принцип Кавальєрі: однакові площі перерізів на кожному рівні — а звідси в геометрії висновують рівність об'ємів. Чому саме рівність площ тягне за собою рівність об'ємів, тут не доводиться — перебір висот дає спостереження, а не доведення.
+  </footer>
+</div>
+
+<script src="model.js"></script>
+<script>
+(function () {
+  var scene = Kavalieri.create(document.getElementById("cv"));
+  var sT = document.getElementById("sT"), sL = document.getElementById("sL");
+  var oT = document.getElementById("oT"), oL = document.getElementById("oL");
+  var note = document.getElementById("note"), bPlay = document.getElementById("bPlay");
+
+  function fmt3(x) { return x.toFixed(3).replace(".", ","); }
+  function fmt2(x) { return x.toFixed(2).replace(".", ","); }
+
+  scene.onChange = function (s) {
+    document.getElementById("vRight").textContent = fmt3(s.areaRight);
+    document.getElementById("vOblique").textContent = fmt3(s.areaOblique);
+    oT.textContent = Math.round(s.t*100) + "%";
+    oL.textContent = fmt2(s.lean);
+    note.textContent = "Перевірено висот: " + s.checked;
+  };
+
+  sT.addEventListener("input", function () {
+    scene.stopPlay(); bPlay.textContent = "Автоперегляд";
+    scene.setT(parseFloat(sT.value)/100);
+  });
+  sL.addEventListener("input", function () { scene.setLean(parseFloat(sL.value)/100); });
+
+  bPlay.addEventListener("click", function () {
+    var playing = scene.togglePlay();
+    bPlay.textContent = playing ? "Стоп" : "Автоперегляд";
+    if (playing) sT.disabled = true; else sT.disabled = false;
+  });
+
+  scene.setLean(parseFloat(sL.value)/100);
+  scene.draw();
+})();
+</script>
+</body>
+</html>

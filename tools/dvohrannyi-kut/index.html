@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Двогранний кут: чому він не такий, як здається — Web_Tools</title>
+<meta name="description" content="Кут між гранями на екрані і кут між гранями насправді — це різні речі. Знайди ракурс, у якому кут не бреше.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Commissioner:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Unbounded:wght@500;700&display=swap">
+<link rel="stylesheet" href="../../assets/style.css">
+<link rel="stylesheet" href="../../assets/tool.css">
+</head>
+<body>
+<div class="wrap">
+
+  <header class="topbar">
+    <div>
+      <a class="backlink" href="../../">← Усі інструменти</a>
+      <h1>Двогранний кут: чому він не такий, як здається</h1>
+    </div>
+  </header>
+
+  <div class="task">
+    <p><b>Що тут відбувається.</b> Дві прямокутні грані «даху» сходяться на спільному ребрі. Двогранний кут між ними задається повзунком і від ракурсу <b>не залежить</b> — змінюється лише те, яким його видно на кресленні. Пунктиром показано промені <b>OP</b> і <b>OQ</b>, перпендикулярні до ребра, по одному в кожній грані, — побудову лінійного кута, яким і вимірюють двогранний кут.</p>
+    <p>Перш ніж рухати повзунок: на око, яким здається кут між гранями з цього ракурсу — гострим, прямим, тупим? Тоді натисни «Подивитись уздовж ребра» і звір із числом.</p>
+  </div>
+
+  <section class="panel">
+    <div class="head">
+      <h2>Сцена</h2>
+      <label class="chk"><input type="checkbox" id="lbls" checked> підписи точок</label>
+    </div>
+    <div class="body">
+      <canvas class="cube" id="cv" aria-label="Двогранний кут та його проєкція"></canvas>
+
+      <div class="pair">
+        <div class="real">
+          <div class="cap">У просторі</div>
+          <div class="val" id="vReal">90,0°</div>
+          <div class="hint">не залежить від ракурсу</div>
+        </div>
+        <div class="drawn">
+          <div class="cap">На кресленні</div>
+          <div class="val" id="vDrawn">—</div>
+          <div class="hint">те, що бачить око</div>
+        </div>
+      </div>
+      <div class="flag" id="flag" hidden></div>
+
+      <div class="sliders">
+        <div class="sl"><label for="sT">Кут між гранями</label><input type="range" id="sT" min="10" max="170" step="0.5" value="90"><output id="oT">90,0°</output></div>
+      </div>
+
+      <div class="toolrow">
+        <button id="bEdge">Подивитись уздовж ребра</button>
+        <button id="bRnd">Випадковий ракурс</button>
+        <button id="bTop">Згори</button>
+        <div class="note" id="note"></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <b>Висновок, заради якого це все.</b> З довільного ракурсу двогранний кут майже завжди виглядає не тим, чим є, — гострим замість тупого чи навпаки. Лінія, уздовж якої треба дивитися, щоб побачити правду, — саме ребро: у цьому єдиному напрямку промені OP і OQ показують кут без спотворення. Це та сама побудова лінійного кута двогранного кута, яку інакше доводиться заучувати формально, не бачачи, звідки вона береться.
+  </footer>
+</div>
+
+<script src="model.js"></script>
+<script>
+(function () {
+  var scene = DihedralAngle.create(document.getElementById("cv"));
+  var sT = document.getElementById("sT"), oT = document.getElementById("oT");
+  var note = document.getElementById("note"), flag = document.getElementById("flag");
+
+  function fmt(x) { return x.toFixed(1).replace(".", ",") + "°"; }
+
+  scene.onChange = function (s) {
+    document.getElementById("vReal").textContent = fmt(s.real);
+    if (s.drawn == null) {
+      document.getElementById("vDrawn").textContent = "—";
+      flag.hidden = false;
+      flag.textContent = "Один із променів дивиться точно в камеру: на кресленні він виродився в точку, і кута не видно взагалі. Це теж відповідь на питання, чи можна вірити рисунку.";
+    } else {
+      document.getElementById("vDrawn").textContent = fmt(s.drawn);
+      flag.hidden = true;
+    }
+    oT.textContent = fmt(s.real);
+  };
+
+  function updateRange() {
+    var r = scene.range();
+    note.innerHTML = "За цього кута у просторі на кресленні його можна побачити приблизно від <b>" +
+      fmt(r[0]) + "</b> до <b>" + fmt(r[1]) + "</b> — залежно лише від того, звідки дивитися.";
+  }
+
+  sT.addEventListener("input", function () { scene.setTheta(parseFloat(sT.value)); });
+  sT.addEventListener("change", updateRange);
+  document.getElementById("lbls").addEventListener("change", function (e) { scene.setLabels(e.target.checked); });
+  document.getElementById("bEdge").addEventListener("click", function () { scene.lookAlongEdge(); });
+  document.getElementById("bRnd").addEventListener("click", function () { scene.randomView(); });
+  document.getElementById("bTop").addEventListener("click", function () { scene.fromAbove(); });
+
+  scene.draw();
+  updateRange();
+})();
+</script>
+</body>
+</html>
