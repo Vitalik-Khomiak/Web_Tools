@@ -111,50 +111,20 @@
     function solidShown() { return st.mode === "forward" || st.solidRevealed; }
     function shadowShown() { return st.mode === "reverse" || st.shadowRevealed; }
 
-    function proj(p) {
-      var sx = p[0]*Math.cos(st.yaw) - p[1]*Math.sin(st.yaw);
-      var q  = p[0]*Math.sin(st.yaw) + p[1]*Math.cos(st.yaw);
-      var sy = p[2]*Math.cos(st.pitch) - q*Math.sin(st.pitch);
-      return [sx, sy];
-    }
-    function viewDir() {
-      return [-Math.sin(st.yaw)*Math.cos(st.pitch),
-              -Math.cos(st.yaw)*Math.cos(st.pitch),
-              -Math.sin(st.pitch)];
-    }
-    function hiddenEdges(shape) {
-      var w = viewDir();
-      return shape.EDGES.map(function (_, i) {
-        return shape.EF[i].every(function (n) { return n[0]*w[0]+n[1]*w[1]+n[2]*w[2] <= 0; });
-      });
-    }
-
-    function cssVar(k) { return getComputedStyle(document.documentElement).getPropertyValue(k).trim(); }
+    function proj(p) { return Scene3D.project(p, st.yaw, st.pitch); }
 
     function draw() {
-      var rect = canvas.getBoundingClientRect();
-      var dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = Math.round(rect.width*dpr);
-      canvas.height = Math.round(rect.height*dpr);
-      var ctx = canvas.getContext("2d");
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      var w = rect.width, h = rect.height;
-      ctx.clearRect(0, 0, w, h);
+      var C = Scene3D.prepareCanvas(canvas);
+      var ctx = C.ctx, w = C.w, h = C.h;
 
       var shape = SHAPES[activeShape()];
       var hull2 = convexHull(shape.VERT.map(shadowXY)); // тінь завжди рахується — для стабільного масштабу
       var groundCorners = [[-GROUND,-GROUND,0],[GROUND,-GROUND,0],[GROUND,GROUND,0],[-GROUND,GROUND,0]];
 
       var probe = shape.VERT.concat(hull2.map(function (p) { return [p[0],p[1],0]; })).concat(groundCorners);
-      var pts = probe.map(proj);
-      var xs = pts.map(function (p) { return p[0]; }), ys = pts.map(function (p) { return p[1]; });
-      var S = Math.min(w/(Math.max.apply(null,xs)-Math.min.apply(null,xs)),
-                       h/(Math.max.apply(null,ys)-Math.min.apply(null,ys))) * 0.74;
-      var ox = w/2 - S*(Math.min.apply(null,xs)+Math.max.apply(null,xs))/2;
-      var oy = h/2 + S*(Math.min.apply(null,ys)+Math.max.apply(null,ys))/2;
-      function sc(p) { var q = proj(p); return [ox + S*q[0], oy - S*q[1]]; }
+      var sc = Scene3D.fitScale(w, h, proj, probe, 0.74);
 
-      var ink = cssVar("--ink"), muted = cssVar("--muted"), soft = cssVar("--line");
+      var ink = Scene3D.cssVar("--ink"), muted = Scene3D.cssVar("--muted"), soft = Scene3D.cssVar("--line");
 
       /* земля */
       var gp = groundCorners.map(sc);
@@ -185,7 +155,7 @@
 
       /* тіло */
       if (solidShown()) {
-        var hid = hiddenEdges(shape);
+        var hid = Scene3D.hiddenEdges(shape.EF, st.yaw, st.pitch);
         ctx.lineCap = "round"; ctx.lineJoin = "round";
         ctx.setLineDash([5,5]); ctx.strokeStyle = muted; ctx.lineWidth = 1.4;
         shape.EDGES.forEach(function (e,i) {
@@ -209,21 +179,7 @@
     }
 
     /* обертання перетягуванням — камера сцени, не світло */
-    var drag = null;
-    canvas.addEventListener("pointerdown", function (e) {
-      drag = {x:e.clientX, y:e.clientY}; canvas.setPointerCapture(e.pointerId);
-    });
-    canvas.addEventListener("pointermove", function (e) {
-      if (!drag) return;
-      st.yaw += (e.clientX-drag.x)*0.008;
-      st.pitch += (e.clientY-drag.y)*0.008;
-      st.pitch = Math.max(-1.4, Math.min(-0.08, st.pitch));
-      drag = {x:e.clientX, y:e.clientY};
-      draw();
-    });
-    ["pointerup","pointercancel"].forEach(function (t) {
-      canvas.addEventListener(t, function () { drag = null; });
-    });
+    Scene3D.attachDrag(canvas, st, { pitchMin: -1.4, pitchMax: -0.08, onMove: draw });
     window.addEventListener("resize", draw);
 
     api.state = st;
@@ -239,7 +195,7 @@
       }
       draw();
     };
-    api.setShape = function (s) { st.shape = s; draw(); };
+    api.setShape = function (s) { st.shape = s; st.shadowRevealed = false; draw(); };
     api.setSun = function (az, alt) {
       if (az != null) st.sunAz = az;
       if (alt != null) st.sunAlt = alt;

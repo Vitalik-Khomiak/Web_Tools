@@ -30,18 +30,12 @@
       return [Math.cos(t), Math.sin(t) * Math.cos(f), Math.sin(t) * Math.sin(f)];
     }
 
-    function projWith(p, yaw, pitch) {
-      var sx = p[0] * Math.cos(yaw) - p[1] * Math.sin(yaw);
-      var q = p[0] * Math.sin(yaw) + p[1] * Math.cos(yaw);
-      var sy = p[2] * Math.cos(pitch) - q * Math.sin(pitch);
-      return [sx, sy];
-    }
-    function proj(p) { return projWith(p, st.yaw, st.pitch); }
+    function proj(p) { return Scene3D.project(p, st.yaw, st.pitch); }
 
     /* кут між проєкціями двох напрямків; null, якщо промінь дивиться
        точно в камеру і його проєкція вироджується в точку */
     function drawnAngle(yaw, pitch) {
-      var a = projWith(dirB(), yaw, pitch), b = projWith(dirC(), yaw, pitch);
+      var a = Scene3D.project(dirB(), yaw, pitch), b = Scene3D.project(dirC(), yaw, pitch);
       var la = Math.hypot(a[0], a[1]), lb = Math.hypot(b[0], b[1]);
       if (la < 1e-6 || lb < 1e-6) return null;
       var cos = (a[0] * b[0] + a[1] * b[1]) / (la * lb);
@@ -82,19 +76,9 @@
       return [lo, hi];
     }
 
-    function cssVar(k) {
-      return getComputedStyle(document.documentElement).getPropertyValue(k).trim();
-    }
-
     function draw() {
-      var rect = canvas.getBoundingClientRect();
-      var dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = Math.round(rect.width * dpr);
-      canvas.height = Math.round(rect.height * dpr);
-      var ctx = canvas.getContext("2d");
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      var w = rect.width, h = rect.height;
-      ctx.clearRect(0, 0, w, h);
+      var C = Scene3D.prepareCanvas(canvas);
+      var ctx = C.ctx, w = C.w, h = C.h;
 
       /* масштаб рахується за кутами площини й кінцями променів,
          щоб сцена не «дихала» під час обертання */
@@ -102,17 +86,11 @@
                    [0,0,0],[RAY,0,0]];
       var c = dirC();
       probe.push([c[0]*RAY, c[1]*RAY, c[2]*RAY]);
-      var pts = probe.map(proj);
-      var xs = pts.map(function (p) { return p[0]; }), ys = pts.map(function (p) { return p[1]; });
-      var S = Math.min(w / (Math.max.apply(null, xs) - Math.min.apply(null, xs)),
-                       h / (Math.max.apply(null, ys) - Math.min.apply(null, ys))) * 0.78;
-      var ox = w / 2 - S * (Math.min.apply(null, xs) + Math.max.apply(null, xs)) / 2;
-      var oy = h / 2 + S * (Math.min.apply(null, ys) + Math.max.apply(null, ys)) / 2;
-      function sc(p) { var q = proj(p); return [ox + S * q[0], oy - S * q[1]]; }
+      var sc = Scene3D.fitScale(w, h, proj, probe, 0.78);
 
-      var ink = cssVar("--ink"), muted = cssVar("--muted"),
-          soft = cssVar("--line"), cB = cssVar("--c4"), cC = cssVar("--c1"),
-          acc = cssVar("--accent");
+      var ink = Scene3D.cssVar("--ink"), muted = Scene3D.cssVar("--muted"),
+          soft = Scene3D.cssVar("--line"), cB = Scene3D.cssVar("--c4"), cC = Scene3D.cssVar("--c1"),
+          acc = Scene3D.cssVar("--accent");
 
       /* площина α */
       var quad = [[-HALF,-HALF,0],[HALF,-HALF,0],[HALF,HALF,0],[-HALF,HALF,0]].map(sc);
@@ -176,7 +154,7 @@
           ctx.textAlign = dx < 0 ? "right" : "left";
           ctx.textBaseline = dy < 0 ? "bottom" : "top";
           var tx = p[0] + dx/L*11, ty = p[1] + dy/L*11;
-          ctx.strokeStyle = cssVar("--surface-2"); ctx.strokeText(it[1], tx, ty);
+          ctx.strokeStyle = Scene3D.cssVar("--surface-2"); ctx.strokeText(it[1], tx, ty);
           ctx.fillStyle = it[2]; ctx.fillText(it[1], tx, ty);
         });
       }
@@ -189,21 +167,7 @@
     }
 
     /* обертання перетягуванням */
-    var drag = null;
-    canvas.addEventListener("pointerdown", function (e) {
-      drag = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId);
-    });
-    canvas.addEventListener("pointermove", function (e) {
-      if (!drag) return;
-      st.yaw += (e.clientX - drag.x) * 0.008;
-      st.pitch += (e.clientY - drag.y) * 0.008;
-      st.pitch = Math.max(-1.5, Math.min(-0.03, st.pitch));
-      drag = { x: e.clientX, y: e.clientY };
-      draw();
-    });
-    ["pointerup","pointercancel"].forEach(function (t) {
-      canvas.addEventListener(t, function () { drag = null; });
-    });
+    Scene3D.attachDrag(canvas, st, { pitchMin: -1.5, pitchMax: -0.03, onMove: draw });
     window.addEventListener("resize", draw);
 
     api.state = st;

@@ -77,25 +77,7 @@
       return { n:n, d: r[0] + (r[1]-r[0])*st.t };
     }
     function proj(p) {
-      var x = p[0]-0.5, y = p[1]-0.5, z = p[2]-0.5;
-      var sx = x*Math.cos(st.yaw) - y*Math.sin(st.yaw);
-      var q  = x*Math.sin(st.yaw) + y*Math.cos(st.yaw);
-      var sy = z*Math.cos(st.pitch) - q*Math.sin(st.pitch);
-      return [sx, sy];
-    }
-    /* напрям на камеру = векторний добуток екранних осей (право × вгору) */
-    function viewDir() {
-      return [-Math.sin(st.yaw)*Math.cos(st.pitch),
-              -Math.cos(st.yaw)*Math.cos(st.pitch),
-              -Math.sin(st.pitch)];
-    }
-    function hiddenEdges() {
-      var w = viewDir();
-      return EDGES.map(function (_, i) {
-        return EDGE_FACES[i].every(function (n) {
-          return n[0]*w[0] + n[1]*w[1] + n[2]*w[2] <= 0;
-        });
-      });
+      return Scene3D.project([p[0]-0.5, p[1]-0.5, p[2]-0.5], st.yaw, st.pitch);
     }
     /* ракурс, з якого переріз видно розкрито, а куб лишається у звичному
        вигляді: yaw ∈ (−90°,0°) і pitch < 0 дають погляд згори-спереду
@@ -104,7 +86,7 @@
       var best = null;
       for (var yd = -84; yd <= -8; yd++) for (var pd = -40; pd <= -18; pd++) {
         var y = yd*Math.PI/180, p = pd*Math.PI/180;
-        var w = [-Math.sin(y)*Math.cos(p), -Math.cos(y)*Math.cos(p), -Math.sin(p)];
+        var w = Scene3D.viewDir(y, p);
         var open = Math.abs(n[0]*w[0] + n[1]*w[1] + n[2]*w[2]);
         var s = Math.min(open, 0.8) + 0.3*Math.min(Math.abs(w[0]), Math.abs(w[1]), Math.abs(w[2]));
         if (!best || s > best.s) best = {s:s, y:y, p:p};
@@ -112,33 +94,18 @@
       return best;
     }
 
-    function cssVar(k) {
-      return getComputedStyle(document.documentElement).getPropertyValue(k).trim();
-    }
     var COLOR = {3:"--c1", 4:"--c2", 5:"--c3", 6:"--c4"};
 
     function draw() {
-      var rect = canvas.getBoundingClientRect();
-      var dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = Math.round(rect.width*dpr);
-      canvas.height = Math.round(rect.height*dpr);
-      var ctx = canvas.getContext("2d");
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      var w = rect.width, h = rect.height;
-      ctx.clearRect(0, 0, w, h);
+      var C = Scene3D.prepareCanvas(canvas);
+      var ctx = C.ctx, w = C.w, h = C.h;
 
-      var P = VERT.map(proj);
-      var xs = P.map(function (p) { return p[0]; }), ys = P.map(function (p) { return p[1]; });
-      var S = Math.min(w/(Math.max.apply(null,xs)-Math.min.apply(null,xs)),
-                       h/(Math.max.apply(null,ys)-Math.min.apply(null,ys))) * 0.72;
-      var ox = w/2 - S*(Math.min.apply(null,xs)+Math.max.apply(null,xs))/2;
-      var oy = h/2 + S*(Math.min.apply(null,ys)+Math.max.apply(null,ys))/2;
-      function sc(p) { var q = proj(p); return [ox + S*q[0], oy - S*q[1]]; }
+      var sc = Scene3D.fitScale(w, h, proj, VERT, 0.72);
 
-      var ink = cssVar("--ink"), muted = cssVar("--muted");
+      var ink = Scene3D.cssVar("--ink"), muted = Scene3D.cssVar("--muted");
       var pl = plane(), res = section(pl.n, pl.d);
-      var k = res.pts.length, col = cssVar(COLOR[k] || "--muted");
-      var hid = hiddenEdges();
+      var k = res.pts.length, col = Scene3D.cssVar(COLOR[k] || "--muted");
+      var hid = Scene3D.hiddenEdges(EDGE_FACES, st.yaw, st.pitch);
 
       ctx.lineCap = "round"; ctx.lineJoin = "round";
       ctx.strokeStyle = muted; ctx.lineWidth = 1.4; ctx.setLineDash([5,5]);
@@ -176,7 +143,7 @@
           ctx.textAlign = dx < 0 ? "right" : "left";
           ctx.textBaseline = dy < 0 ? "bottom" : "top";
           var tx = p[0] + dx/L*9, ty = p[1] + dy/L*9;
-          ctx.strokeStyle = cssVar("--surface-2"); ctx.strokeText(LBL[i], tx, ty);
+          ctx.strokeStyle = Scene3D.cssVar("--surface-2"); ctx.strokeText(LBL[i], tx, ty);
           ctx.fillStyle = muted; ctx.fillText(LBL[i], tx, ty);
         });
       }
@@ -190,21 +157,7 @@
     }
 
     /* --- керування --- */
-    var drag = null;
-    canvas.addEventListener("pointerdown", function (e) {
-      drag = {x:e.clientX, y:e.clientY}; canvas.setPointerCapture(e.pointerId);
-    });
-    canvas.addEventListener("pointermove", function (e) {
-      if (!drag) return;
-      st.yaw += (e.clientX-drag.x)*0.008;
-      st.pitch += (e.clientY-drag.y)*0.008;
-      st.pitch = Math.max(-1.35, Math.min(1.35, st.pitch));
-      drag = {x:e.clientX, y:e.clientY};
-      draw();
-    });
-    ["pointerup","pointercancel"].forEach(function (t) {
-      canvas.addEventListener(t, function () { drag = null; });
-    });
+    Scene3D.attachDrag(canvas, st, { pitchMin: -1.35, pitchMax: 1.35, onMove: draw });
     window.addEventListener("resize", draw);
 
     api.state = st;

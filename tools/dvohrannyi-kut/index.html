@@ -53,6 +53,7 @@
       </div>
 
       <div class="toolrow">
+        <button id="bNew">Новий кут</button>
         <button id="bEdge">Подивитись уздовж ребра</button>
         <button id="bRnd">Випадковий ракурс</button>
         <button id="bTop">Згори</button>
@@ -66,6 +67,7 @@
   </footer>
 </div>
 
+<script src="../../assets/scene3d.js"></script>
 <script src="model.js"></script>
 <script>
 (function () {
@@ -97,6 +99,9 @@
   sT.addEventListener("input", function () { scene.setTheta(parseFloat(sT.value)); });
   sT.addEventListener("change", updateRange);
   document.getElementById("lbls").addEventListener("change", function (e) { scene.setLabels(e.target.checked); });
+  document.getElementById("bNew").addEventListener("click", function () {
+    scene.newAngle(); sT.value = scene.state.theta; updateRange();
+  });
   document.getElementById("bEdge").addEventListener("click", function () { scene.lookAlongEdge(); });
   document.getElementById("bRnd").addEventListener("click", function () { scene.randomView(); });
   document.getElementById("bTop").addEventListener("click", function () { scene.fromAbove(); });

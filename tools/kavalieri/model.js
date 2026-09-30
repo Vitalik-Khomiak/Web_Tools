@@ -52,14 +52,7 @@
     var api = {};
     var timer = null;
 
-    function proj(p) {
-      var sx = p[0]*Math.cos(st.yaw) - p[1]*Math.sin(st.yaw);
-      var q  = p[0]*Math.sin(st.yaw) + p[1]*Math.cos(st.yaw);
-      var sy = p[2]*Math.cos(st.pitch) - q*Math.sin(st.pitch);
-      return [sx, sy];
-    }
-
-    function cssVar(k) { return getComputedStyle(document.documentElement).getPropertyValue(k).trim(); }
+    function proj(p) { return Scene3D.project(p, st.yaw, st.pitch); }
 
     function drawTube(ctx, sc, centerFn, r, ink, muted) {
       var bottom = centerFn(0), top = centerFn(H);
@@ -88,27 +81,16 @@
     }
 
     function draw() {
-      var rect = canvas.getBoundingClientRect();
-      var dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = Math.round(rect.width*dpr);
-      canvas.height = Math.round(rect.height*dpr);
-      var ctx = canvas.getContext("2d");
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      var w = rect.width, h = rect.height;
-      ctx.clearRect(0, 0, w, h);
+      var C = Scene3D.prepareCanvas(canvas);
+      var ctx = C.ctx, w = C.w, h = C.h;
 
       var topO = centerO(H, st.lean);
       var probe = circleLoop(centerR(0), R_RIGHT, 16).concat(circleLoop(centerR(H), R_RIGHT, 16))
         .concat(circleLoop(centerO(0, st.lean), R_OBLIQUE, 16)).concat(circleLoop(topO, R_OBLIQUE, 16));
-      var pts = probe.map(proj);
-      var xs = pts.map(function (p) { return p[0]; }), ys = pts.map(function (p) { return p[1]; });
-      var S = Math.min(w/(Math.max.apply(null,xs)-Math.min.apply(null,xs)),
-                       h/(Math.max.apply(null,ys)-Math.min.apply(null,ys))) * 0.78;
-      var ox = w/2 - S*(Math.min.apply(null,xs)+Math.max.apply(null,xs))/2;
-      var oy = h/2 + S*(Math.min.apply(null,ys)+Math.max.apply(null,ys))/2;
-      function sc(p) { var q = proj(p); return [ox + S*q[0], oy - S*q[1]]; }
+      var sc = Scene3D.fitScale(w, h, proj, probe, 0.78);
 
-      var ink = cssVar("--ink"), muted = cssVar("--muted"), acc = cssVar("--accent"), onAcc = cssVar("--on-accent");
+      var ink = Scene3D.cssVar("--ink"), muted = Scene3D.cssVar("--muted"),
+          acc = Scene3D.cssVar("--accent"), onAcc = Scene3D.cssVar("--on-accent");
 
       drawTube(ctx, sc, centerR, R_RIGHT, ink, muted);
       drawTube(ctx, sc, function (z) { return centerO(z, st.lean); }, R_OBLIQUE, ink, muted);
@@ -129,21 +111,7 @@
       });
     }
 
-    var drag = null;
-    canvas.addEventListener("pointerdown", function (e) {
-      drag = {x:e.clientX, y:e.clientY}; canvas.setPointerCapture(e.pointerId);
-    });
-    canvas.addEventListener("pointermove", function (e) {
-      if (!drag) return;
-      st.yaw += (e.clientX-drag.x)*0.008;
-      st.pitch += (e.clientY-drag.y)*0.008;
-      st.pitch = Math.max(-1.3, Math.min(-0.08, st.pitch));
-      drag = {x:e.clientX, y:e.clientY};
-      draw();
-    });
-    ["pointerup","pointercancel"].forEach(function (t) {
-      canvas.addEventListener(t, function () { drag = null; });
-    });
+    Scene3D.attachDrag(canvas, st, { pitchMin: -1.3, pitchMax: -0.08, onMove: draw });
     window.addEventListener("resize", draw);
 
     api.state = st;
